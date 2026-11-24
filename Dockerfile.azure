@@ -1,0 +1,23 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm run typecheck:libs
+RUN pnpm --filter @workspace/api-server typecheck
+RUN pnpm --filter @workspace/sentinel typecheck
+RUN NODE_ENV=production PORT=8080 BASE_PATH=/ pnpm --filter @workspace/sentinel build
+RUN pnpm --filter @workspace/api-server build
+
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends python3 ca-certificates tini \
+    && rm -rf /var/lib/apt/lists/*
+ENV COREPACK_HOME=/opt/corepack
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+WORKDIR /app
+COPY --from=build --chown=node:node /app /app
+ENV NODE_ENV=production PORT=8080 STATIC_DIR=/app/artifacts/sentinel/dist/public
+USER node
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/tini","--"]
+CMD ["node","artifacts/api-server/dist/index.mjs"]

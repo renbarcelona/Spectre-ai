@@ -1,0 +1,16 @@
+.env
+.env.*
+**/.env
+**/.env.*
+**/.secrets/
+azure/config.json
+azure/last-release.json
+**/node_modules/
+**/dist/
+*.dump
+*.backup
+*.key
+*.pem
+*.tsbuildinfo
+deployment/release.env
+deployment/aci.private.yaml

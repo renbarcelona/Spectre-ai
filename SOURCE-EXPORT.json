@@ -1,0 +1,14 @@
+{
+  "createdAt": "2026-11-24T00:05:43.330790+00:00",
+  "sourceCommit": "d2941f4110c97b186703ff041d792eea6c98a3ae",
+  "includesUncommittedWorkspaceChanges": true,
+  "targets": [
+    "Azure Container Apps",
+    "Azure VM",
+    "Azure Container Instances",
+    "Azure App Service"
+  ],
+  "azureDeploymentTested": false,
+  "secretsIncluded": false,
+  "databaseBackupIncluded": false
+}

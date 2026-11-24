@@ -1,0 +1,82 @@
+# Reference only: provision staging first and complete the portability changes.
+trigger: none
+pr: none
+pool:
+  vmImage: ubuntu-latest
+variables:
+  acrName: REPLACE_REGISTRY_NAME
+  resourceGroup: REPLACE_STAGING_RESOURCE_GROUP
+  appName: REPLACE_STAGING_APP_NAME
+stages:
+- stage: Build
+  jobs:
+  - job: Image
+    steps:
+    - checkout: self
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '24.x'
+    - bash: |
+        set -euo pipefail
+        corepack enable
+        corepack prepare pnpm@10.26.1 --activate
+        pnpm install --frozen-lockfile
+        pnpm run typecheck:libs
+        pnpm --filter @workspace/api-server typecheck
+        pnpm --filter @workspace/sentinel typecheck
+        python3 -m unittest discover \
+          -s artifacts/api-server/embedded-scanner -p 'test_*.py'
+        node artifacts/api-server/tests/embedded-execution.mjs
+        node artifacts/api-server/tests/measured-exposure.mjs
+      displayName: Validate Source
+    - task: AzureCLI@2
+      name: imageRef
+      inputs:
+        azureSubscription: spectre-staging-deploy
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -euo pipefail
+          TAG="build-$(Build.BuildId)"
+          az acr build --registry "$(acrName)" \
+            --image "spectre:$TAG" --file Dockerfile.azure .
+          SERVER=$(az acr show -n "$(acrName)" \
+            --query loginServer -o tsv)
+          DIGEST=$(az acr repository show -n "$(acrName)" \
+            --image "spectre:$TAG" --query digest -o tsv)
+          test -n "$DIGEST"
+          IMAGE="$SERVER/spectre@$DIGEST"
+          mkdir -p "$(Build.ArtifactStagingDirectory)/release"
+          printf '%s\n' "$IMAGE" \
+            > "$(Build.ArtifactStagingDirectory)/release/image.txt"
+          echo "##vso[task.setvariable variable=image;isOutput=true]$IMAGE"
+    - publish: $(Build.ArtifactStagingDirectory)/release
+      artifact: release
+- stage: Staging
+  dependsOn: Build
+  variables:
+    image: $[stageDependencies.Build.Image.outputs['imageRef.image']]
+  jobs:
+  - deployment: Deploy
+    environment: spectre-staging
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: spectre-staging-deploy
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az extension add --name containerapp --upgrade
+                az containerapp update -g "$(resourceGroup)" \
+                  -n "$(appName)" --image "$(image)"
+                HOST=$(az containerapp show -g "$(resourceGroup)" \
+                  -n "$(appName)" \
+                  --query properties.configuration.ingress.fqdn -o tsv)
+                curl --fail --retry 12 --retry-delay 5 \
+                  "https://$HOST/api/healthz"
+                curl --fail --retry 12 --retry-delay 5 \
+                  "https://$HOST/api/readyz"

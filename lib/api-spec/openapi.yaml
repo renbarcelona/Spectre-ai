@@ -1,0 +1,1059 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+servers:
+  - url: /api
+paths:
+  /v1/features:
+    get:
+      operationId: getFeatureSettings
+      responses:
+        "200":
+          description: Workspace-wide module availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureSettings" }
+    patch:
+      operationId: updateFeatureSetting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeatureSettingInput" }
+      responses:
+        "200":
+          description: Updated module availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureSettings" }
+        "403":
+          description: Administrator required
+  /team-auth/status:
+    get:
+      operationId: getTeamAuthStatus
+      responses:
+        "200":
+          description: Login and first-administrator setup status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAuthStatus" }
+  /team-auth/login:
+    post:
+      operationId: loginTeamAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamLoginInput" }
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAccount" }
+  /team-auth/setup:
+    post:
+      operationId: setupTeamAdministrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamSetupInput" }
+      responses:
+        "201":
+          description: First administrator created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAccount" }
+  /team-auth/logout:
+    post:
+      operationId: logoutTeamAccount
+      responses:
+        "200":
+          description: Signed out
+  /team-auth/password:
+    post:
+      operationId: changeTeamPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamPasswordInput" }
+      responses:
+        "200":
+          description: Password changed and session rotated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAccount" }
+  /team-auth/users:
+    get:
+      operationId: listTeamAccounts
+      responses:
+        "200":
+          description: Administrator-only account list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TeamAccount" }
+    post:
+      operationId: createTeamAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamAccountInput" }
+      responses:
+        "201":
+          description: Account created with temporary password
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAccount" }
+  /team-auth/users/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateTeamAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamAccountUpdate" }
+      responses:
+        "200":
+          description: Account updated; role changes and resets revoke sessions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamAccount" }
+    delete:
+      operationId: deleteTeamAccount
+      responses:
+        "200":
+          description: Account deleted; team data is retained
+  /v1/gateway:
+    get:
+      operationId: getGateway
+      responses:
+        "200":
+          description: Owner-scoped gateway settings and provider catalog
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayState" }
+  /v1/gateway/connectors:
+    post:
+      operationId: createGatewayConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GatewayConnectorInput" }
+      responses:
+        "201":
+          description: Connector saved; test before enabling
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayConnector" }
+  /v1/gateway/connectors/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateGatewayConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GatewayConnectorUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayConnector" }
+    delete:
+      operationId: deleteGatewayConnector
+      responses:
+        "200":
+          description: Removed; secret must be removed separately
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /v1/gateway/connectors/{id}/test:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: testGatewayConnector
+      responses:
+        "200":
+          description: Connection test outcome, including failures
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayResult" }
+  /v1/gateway/connectors/{id}/query:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: queryGatewayConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GatewayQuery" }
+      responses:
+        "200":
+          description: Read-only CTI result or AI text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayResult" }
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUserEnvelope" }
+  /login:
+    get:
+      operationId: beginBrowserLogin
+      responses:
+        "302": { description: OIDC redirect }
+  /callback:
+    get:
+      operationId: handleBrowserLoginCallback
+      responses:
+        "302": { description: Login redirect }
+  /logout:
+    get:
+      operationId: logoutBrowserSession
+      responses:
+        "302": { description: Logout redirect }
+  /mobile-auth/token-exchange:
+    post:
+      operationId: exchangeMobileAuthorizationCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MobileTokenExchangeRequest" }
+      responses:
+        "200":
+          description: Session token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MobileTokenExchangeSuccess" }
+  /mobile-auth/logout:
+    post:
+      operationId: logoutMobileSession
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogoutSuccess" }
+  /v1/live:
+    get:
+      operationId: getLiveDiscovery
+      responses:
+        "200":
+          description: Signed-in owner's live discovery records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveDiscovery" }
+  /v1/live/agents:
+    post:
+      operationId: registerScanner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScannerInput" }
+      responses:
+        "201":
+          description: Agent registered; credential shown only once
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScannerRegistration" }
+  /v1/live/agents/{id}/revoke:
+    post:
+      operationId: revokeScanner
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scanner" }
+  /v1/live/targets:
+    post:
+      operationId: approvePublicTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicTargetInput" }
+      responses:
+        "201":
+          description: Authorized target
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicTarget" }
+  /v1/live/targets/{id}:
+    delete:
+      operationId: revokePublicTarget
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Target scope revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicTarget" }
+  /v1/live/jobs:
+    post:
+      operationId: createLiveJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LiveJobInput" }
+      responses:
+        "201":
+          description: Job queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveJob" }
+  /v1/live/embedded-status:
+    get:
+      operationId: getEmbeddedStatus
+      responses:
+        "200":
+          description: Local Python runtime readiness, not target reachability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available, engine, message]
+                properties:
+                  available: { type: boolean }
+                  engine: { type: string }
+                  message: { type: string }
+  /v1/live/embedded-jobs:
+    post:
+      operationId: createEmbeddedJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmbeddedJobInput" }
+      responses:
+        "201":
+          description: Embedded TCP checks started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveJob" }
+  /v1/live/emergency-stop:
+    post:
+      operationId: stopAllLiveScans
+      responses:
+        "200":
+          description: All owned live jobs cancelled or cancellation requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveDiscovery" }
+  /v1/live/jobs/{id}/cancel:
+    post:
+      operationId: cancelLiveJob
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Cancellation requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveJob" }
+  /v1/scanner/poll:
+    post:
+      operationId: pollScanner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScannerPollInput" }
+      responses:
+        "200":
+          description: Agent work lease or cancellation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScannerPoll" }
+  /v1/scanner/result:
+    post:
+      operationId: submitScannerResult
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScannerResultInput" }
+      responses:
+        "200":
+          description: Evidence accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveJob" }
+  /v1/exercises:
+    get:
+      operationId: listExercises
+      responses:
+        "200":
+          description: Saved demo exercises
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Exercise" } }
+    post:
+      operationId: createExercise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExerciseInput" }
+      responses:
+        "201":
+          description: Exercise awaiting approval
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+  /v1/exercises/{id}/action:
+    post:
+      operationId: actOnExercise
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExerciseAction" }
+      responses:
+        "200":
+          description: Updated exercise
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+  /healthz:
+    get:
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /v1/workspace:
+    get:
+      operationId: getWorkspace
+      responses:
+        "200":
+          description: Complete demonstration assessment workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+  /v1/scans:
+    post:
+      operationId: createScan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScanInput" }
+      responses:
+        "201":
+          description: Demonstration scan created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scan" }
+  /v1/emergency-stop:
+    post:
+      operationId: emergencyStop
+      responses:
+        "200":
+          description: All demo jobs stopped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /v1/remediations/{id}:
+    patch:
+      operationId: updateRemediation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RemediationInput" }
+      responses:
+        "200":
+          description: Updated review decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /v1/investigator:
+    post:
+      operationId: investigate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestigationInput" }
+      responses:
+        "200":
+          description: Evidence based answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /v1/executive-insights:
+    put:
+      operationId: saveExecutiveInsights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExecutiveInsightsConfig" }
+      responses:
+        "200":
+          description: Saved presentation controls with server timestamp and revision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExecutiveInsightsConfig" }
+        "400":
+          description: Invalid inputs
+        "409":
+          description: Stale revision; reload before saving
+  /v1/settings:
+    put:
+      operationId: saveSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Settings" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+components:
+  schemas:
+    FeatureSettings:
+      type: object
+      required: [executiveInsights, scans, redTeam, vulnerabilities, reports, investigator]
+      properties:
+        executiveInsights: { type: boolean }
+        scans: { type: boolean }
+        redTeam: { type: boolean }
+        vulnerabilities: { type: boolean }
+        reports: { type: boolean }
+        investigator: { type: boolean }
+    FeatureSettingInput:
+      type: object
+      additionalProperties: false
+      required: [feature, enabled]
+      properties:
+        feature:
+          type: string
+          enum: [executiveInsights, scans, redTeam, vulnerabilities, reports, investigator]
+        enabled: { type: boolean }
+    TeamLoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+    TeamSetupInput:
+      allOf:
+        - { $ref: "#/components/schemas/TeamAccountInput" }
+        - type: object
+          required: [setupCode]
+          properties:
+            setupCode: { type: string }
+    TeamPasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 12, maxLength: 128 }
+    TeamAccountUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        role: { type: string, enum: [admin, readonly] }
+        active: { type: boolean }
+        password: { type: string, minLength: 12, maxLength: 128 }
+    TeamAccount:
+      type: object
+      required: [id, username, displayName, role, active, mustChangePassword, createdAt]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        role: { type: string, enum: [admin, readonly] }
+        active: { type: boolean }
+        mustChangePassword: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    TeamAccountInput:
+      type: object
+      required: [username, displayName, role, password]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 80, pattern: "^[a-zA-Z0-9][a-zA-Z0-9._@-]{2,79}$" }
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        role: { type: string, enum: [admin, readonly] }
+        password: { type: string, minLength: 12, maxLength: 128 }
+    TeamAuthStatus:
+      type: object
+      required: [setupRequired, setupReady, user]
+      properties:
+        setupRequired: { type: boolean }
+        setupReady: { type: boolean }
+        user:
+          anyOf:
+            - { $ref: "#/components/schemas/TeamAccount" }
+            - { type: "null" }
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id: { type: string }
+        email: { type: [string, "null"] }
+        firstName: { type: [string, "null"] }
+        lastName: { type: [string, "null"] }
+        profileImageUrl: { type: [string, "null"] }
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - { $ref: "#/components/schemas/AuthUser" }
+            - { type: "null" }
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code: { type: string, minLength: 1 }
+        code_verifier: { type: string, minLength: 1 }
+        redirect_uri: { type: string, minLength: 1 }
+        state: { type: string, minLength: 1 }
+        nonce: { type: string }
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+    ScannerInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    Scanner:
+      type: object
+      required: [id, name, createdAt, revoked]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        createdAt: { type: string }
+        revoked: { type: boolean }
+        lastSeen: { type: string }
+        version: { type: string }
+        nmapVersion: { type: string }
+    ScannerRegistration:
+      type: object
+      required: [agent, token]
+      properties:
+        agent: { $ref: "#/components/schemas/Scanner" }
+        token: { type: string }
+    PublicTargetInput:
+      type: object
+      required: [ip, label, authorizationReference, expiresAt, authorized]
+      properties:
+        ip: { type: string, minLength: 7, maxLength: 15 }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        authorizationReference: { type: string, minLength: 5, maxLength: 1000 }
+        expiresAt: { type: string }
+        authorized: { type: boolean }
+    PublicTarget:
+      type: object
+      required: [id, ip, label, authorizationReference, expiresAt, createdAt, authorizedBy, revoked]
+      properties:
+        id: { type: string }
+        ip: { type: string }
+        label: { type: string }
+        authorizationReference: { type: string }
+        expiresAt: { type: string }
+        createdAt: { type: string }
+        authorizedBy: { type: string }
+        revoked: { type: boolean }
+    LiveJobInput:
+      type: object
+      required: [targetId, agentId, profile, authorized]
+      properties:
+        targetId: { type: string }
+        agentId: { type: string }
+        profile: { type: string, enum: [web, standard] }
+        authorized: { type: boolean }
+    EmbeddedJobInput:
+      type: object
+      required: [targetId, profile, authorized]
+      properties:
+        targetId: { type: string }
+        profile: { type: string, enum: [web, standard, custom] }
+        tcpPorts: { type: string, maxLength: 1024, description: "Custom profile only. Comma-separated ports and inclusive ranges; 30 combined protocol/port checks maximum." }
+        udpPorts: { type: string, maxLength: 1024, description: "Custom profile only. Comma-separated UDP ports and inclusive ranges." }
+        authorized: { type: boolean }
+    DiscoveredService:
+      type: object
+      required: [port, state, service]
+      properties:
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        protocol: { type: string, enum: [tcp, udp], description: "Missing on historical records means TCP." }
+        state: { type: string, enum: [open, closed, filtered, unfiltered, open|filtered, closed|filtered, timeout, error] }
+        detail: { type: string, maxLength: 1000 }
+        elapsedMs: { type: number, minimum: 0 }
+        service: { type: string, maxLength: 100 }
+        product: { type: string, maxLength: 200 }
+        version: { type: string, maxLength: 200 }
+        reason: { type: string, maxLength: 200 }
+    LiveJob:
+      type: object
+      required: [id, targetId, agentId, ip, profile, ports, status, createdAt, createdBy, services]
+      properties:
+        engine: { type: string, enum: [external, embedded] }
+        rawEvidence: { type: string }
+        id: { type: string }
+        targetId: { type: string }
+        agentId: { type: string }
+        ip: { type: string }
+        profile: { type: string, enum: [web, standard, custom] }
+        ports: { type: array, items: { type: integer } }
+        tcpPorts: { type: array, items: { type: integer, minimum: 1, maximum: 65535 } }
+        udpPorts: { type: array, items: { type: integer, minimum: 1, maximum: 65535 } }
+        status: { type: string, enum: [queued, running, cancelling, completed, failed, cancelled] }
+        createdAt: { type: string }
+        createdBy: { type: string }
+        startedAt: { type: string }
+        finishedAt: { type: string }
+        error: { type: string }
+        agentVersion: { type: string }
+        nmapVersion: { type: string }
+        hostStatus: { type: string }
+        evidenceSha256: { type: string }
+        rawXml: { type: string }
+        services: { type: array, items: { $ref: "#/components/schemas/DiscoveredService" } }
+    LiveAudit:
+      type: object
+      required: [at, actor, action]
+      properties:
+        at: { type: string }
+        actor: { type: string }
+        action: { type: string }
+    LiveDiscovery:
+      type: object
+      required: [agents, targets, jobs, audit]
+      properties:
+        agents: { type: array, items: { $ref: "#/components/schemas/Scanner" } }
+        targets: { type: array, items: { $ref: "#/components/schemas/PublicTarget" } }
+        jobs: { type: array, items: { $ref: "#/components/schemas/LiveJob" } }
+        audit: { type: array, items: { $ref: "#/components/schemas/LiveAudit" } }
+    ScannerPollInput:
+      type: object
+      required: [version, nmapVersion]
+      properties:
+        version: { type: string, maxLength: 80 }
+        nmapVersion: { type: string, maxLength: 200 }
+        jobId: { type: string }
+        leaseId: { type: string }
+    ScannerPoll:
+      type: object
+      required: [cancel]
+      properties:
+        cancel: { type: boolean }
+        job: { $ref: "#/components/schemas/LiveJob" }
+        leaseId: { type: string }
+    ScannerResultInput:
+      type: object
+      required: [jobId, leaseId, status, services, rawXml, hostStatus]
+      properties:
+        jobId: { type: string }
+        leaseId: { type: string }
+        status: { type: string, enum: [completed, failed, cancelled] }
+        error: { type: string, maxLength: 1000 }
+        rawXml: { type: string, maxLength: 262144 }
+        hostStatus: { type: string, maxLength: 100 }
+        services: { type: array, maxItems: 30, items: { $ref: "#/components/schemas/DiscoveredService" } }
+    InsightRow:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 100 }
+        label: { type: string, minLength: 1, maxLength: 200 }
+        value: { type: number, minimum: 0, maximum: 1000000000000 }
+        secondaryValue: { type: number, minimum: 0, maximum: 1000000000000 }
+        detail: { type: string, maxLength: 2000 }
+        reference: { type: string, maxLength: 500 }
+        owner: { type: string, maxLength: 200 }
+        observedAt: { type: string, maxLength: 100 }
+        rating: { type: string, enum: [Severe, Elevated, Guarded, Low] }
+    InsightSection:
+      type: object
+      required: [key, mode, rows]
+      properties:
+        key: { type: string, enum: [briefing, technical, financial, direction, decisions, themes, priority, threatMap] }
+        mode: { type: string, enum: [automated, manual] }
+        headline: { type: string, maxLength: 300 }
+        narrative: { type: string, maxLength: 3000 }
+        source: { type: string, maxLength: 1000 }
+        owner: { type: string, maxLength: 200 }
+        asOf: { type: string, maxLength: 100 }
+        reason: { type: string, maxLength: 1000 }
+        value: { type: number, minimum: 0, maximum: 1000000000000 }
+        secondaryValue: { type: number, minimum: 0, maximum: 1000000000000 }
+        unit: { type: string, maxLength: 20 }
+        rows: { type: array, maxItems: 100, items: { $ref: "#/components/schemas/InsightRow" } }
+    ExecutiveInsightsConfig:
+      type: object
+      required: [revision, sections]
+      properties:
+        revision: { type: integer, minimum: 0 }
+        updatedAt: { type: string }
+        sections: { type: array, minItems: 8, maxItems: 8, items: { $ref: "#/components/schemas/InsightSection" } }
+    ExerciseInput:
+      type: object
+      required: [scenario, assetIds, authorized]
+      properties:
+        scenario: { type: string, enum: [application, boundary] }
+        assetIds: { type: array, minItems: 1, maxItems: 10, items: { type: string } }
+        authorized: { type: boolean }
+    ExerciseAction:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [approve, advance, stop] }
+    ExerciseStep:
+      type: object
+      required: [title, technique, status, outcome, evidence, mitigation, timestamp]
+      properties:
+        title: { type: string }
+        technique: { type: string }
+        status: { type: string }
+        outcome: { type: string }
+        evidence: { type: string }
+        mitigation: { type: string }
+        timestamp: { type: string }
+    Exercise:
+      type: object
+      required: [id, scenario, title, objective, assetIds, status, createdAt, approvedAt, steps, detection]
+      properties:
+        id: { type: string }
+        scenario: { type: string }
+        title: { type: string }
+        objective: { type: string }
+        assetIds: { type: array, items: { type: string } }
+        status: { type: string }
+        createdAt: { type: string }
+        approvedAt: { type: string }
+        detection: { type: string }
+        steps: { type: array, items: { $ref: "#/components/schemas/ExerciseStep" } }
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    ScanInput:
+      type: object
+      required: [target, type, speed, ports, authorized]
+      properties:
+        target: { type: string, minLength: 7, maxLength: 50 }
+        type: { type: string, enum: [single, subnet, ports] }
+        speed: { type: string, enum: [T1, T2, T3, T4, T5] }
+        ports: { type: string, maxLength: 100 }
+        authorized: { type: boolean }
+    Scan:
+      type: object
+      required: [id, target, type, speed, ports, status, progress, createdAt, findings]
+      properties:
+        id: { type: string }
+        target: { type: string }
+        type: { type: string }
+        speed: { type: string }
+        ports: { type: string }
+        status: { type: string }
+        progress: { type: number }
+        createdAt: { type: string }
+        findings: { type: integer }
+    Asset:
+      type: object
+      required: [id, hostname, ip, os, type, zone, risk, ports, recommendation]
+      properties:
+        id: { type: string }
+        hostname: { type: string }
+        ip: { type: string }
+        os: { type: string }
+        type: { type: string }
+        zone: { type: string }
+        risk: { type: number }
+        ports: { type: array, items: { type: integer } }
+        recommendation: { type: string }
+    Vulnerability:
+      type: object
+      required: [id, assetId, title, cve, severity, score, kev, technique, recommendation, status, confidence]
+      properties:
+        id: { type: string }
+        assetId: { type: string }
+        title: { type: string }
+        cve: { type: string }
+        severity: { type: string }
+        score: { type: number }
+        kev: { type: boolean }
+        technique: { type: string }
+        recommendation: { type: string }
+        status: { type: string }
+        confidence: { type: number }
+    RemediationInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [pending, approved, rejected] }
+    InvestigationInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 4000 }
+        source: { type: string, enum: [demo, embedded], default: demo }
+        jobId: { type: string, minLength: 1, maxLength: 100 }
+        connectorId: { type: string, minLength: 1, maxLength: 100 }
+    GatewayConnectorInput:
+      type: object
+      required: [name, provider]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        provider: { type: string, enum: [openai, anthropic, gemini, openrouter, compatible, cisa, virustotal, abuseipdb, otx, misp, opencti, taxii] }
+        baseUrl: { type: string, maxLength: 500 }
+        model: { type: string, maxLength: 120 }
+    GatewayConnectorUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        model: { type: string, maxLength: 120 }
+        enabled: { type: boolean }
+    GatewayConnector:
+      type: object
+      required: [id, name, provider, kind, enabled, credentialReady, createdAt, revision]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        provider: { type: string }
+        kind: { type: string, enum: [ai, cti] }
+        baseUrl: { type: string }
+        model: { type: string }
+        enabled: { type: boolean }
+        secretName: { type: string }
+        credentialReady: { type: boolean }
+        createdAt: { type: string }
+        revision: { type: integer }
+        testedAt: { type: string }
+        testOk: { type: boolean }
+    GatewayProvider:
+      type: object
+      required: [id, name, kind, description, auth, ready, queryHint, docsUrl]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [ai, cti] }
+        description: { type: string }
+        auth: { type: string }
+        ready: { type: boolean }
+        defaultModel: { type: string }
+        baseUrl: { type: string }
+        customUrl: { type: boolean }
+        queryHint: { type: string }
+        docsUrl: { type: string }
+    GatewayAudit:
+      type: object
+      required: [at, connectorId, action, outcome]
+      properties:
+        at: { type: string }
+        connectorId: { type: string }
+        action: { type: string }
+        outcome: { type: string }
+    GatewayState:
+      type: object
+      required: [connectors, providers, audit]
+      properties:
+        connectors: { type: array, items: { $ref: "#/components/schemas/GatewayConnector" } }
+        providers: { type: array, items: { $ref: "#/components/schemas/GatewayProvider" } }
+        audit: { type: array, items: { $ref: "#/components/schemas/GatewayAudit" } }
+    GatewayQuery:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1, maxLength: 4000 }
+    GatewayResult:
+      type: object
+      required: [ok, message, at]
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+        resultText: { type: string }
+        at: { type: string }
+    Settings:
+      type: object
+      required: [organization, allowedSubnet, notifications]
+      properties:
+        organization: { type: string, minLength: 1, maxLength: 100 }
+        allowedSubnet: { type: string, enum: ["192.168.10.0/24"] }
+        notifications: { type: boolean }
+    Activity:
+      type: object
+      required: [id, message, timestamp, type]
+      properties:
+        id: { type: string }
+        message: { type: string }
+        timestamp: { type: string }
+        type: { type: string }
+    Compliance:
+      type: object
+      required: [name, score, assessed, total]
+      properties:
+        name: { type: string }
+        score: { type: number }
+        assessed: { type: integer }
+        total: { type: integer }
+    Workspace:
+      type: object
+      required: [mode, assets, vulnerabilities, scans, activity, compliance, settings, riskScore, aiAvailable]
+      properties:
+        features: { $ref: "#/components/schemas/FeatureSettings" }
+        executiveInsights: { $ref: "#/components/schemas/ExecutiveInsightsConfig" }
+        exercises: { type: array, items: { $ref: "#/components/schemas/Exercise" } }
+        mode: { type: string }
+        aiAvailable: { type: boolean }
+        aiModel:
+          type: string
+          description: Configured default Investigator model identifier; individual gateway connector selections may use a different model. Not a connectivity test.
+        riskScore: { type: number }
+        settings: { $ref: "#/components/schemas/Settings" }
+        assets: { type: array, items: { $ref: "#/components/schemas/Asset" } }
+        vulnerabilities: { type: array, items: { $ref: "#/components/schemas/Vulnerability" } }
+        scans: { type: array, items: { $ref: "#/components/schemas/Scan" } }
+        activity: { type: array, items: { $ref: "#/components/schemas/Activity" } }
+        compliance: { type: array, items: { $ref: "#/components/schemas/Compliance" } }

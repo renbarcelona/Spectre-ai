@@ -1,0 +1,24 @@
+[Unit]
+Description=SPECTRE Public Asset Discovery Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=spectre-scanner
+Group=spectre-scanner
+EnvironmentFile=/etc/spectre-scanner.env
+ExecStart=/usr/bin/python3 /opt/spectre-scanner/agent.py
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+TimeoutStopSec=15
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
